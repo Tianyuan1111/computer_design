@@ -1,6 +1,5 @@
 import pyrtl
 from pyrtl import Input, Register, WireVector, Const
-from pyrtl.corecircuits import mux
 
 # ------------------------------
 # 参数定义
@@ -29,7 +28,7 @@ OP_MOV   = 0b0110
 OP_HALT  = 0b0111
 
 # ------------------------------
-# 状态与存储器
+# 定义存储器与初始化
 # ------------------------------
 reg_file = [Register(DATA_WIDTH, f'r{i}') for i in range(6)]
 SP = Register(DATA_WIDTH, 'SP')
@@ -39,16 +38,19 @@ Z = Register(1, 'Z')
 memory = pyrtl.MemBlock(DATA_WIDTH, 1 << ADDR_WIDTH, name='mem')
 instr_mem = pyrtl.MemBlock(INSTR_WIDTH, 1 << ADDR_WIDTH, name='instr_mem')
 
+# 复位到初始状态
 reset = Input(1, 'reset')
 
 # ------------------------------
-# 控制信号
+# 定义导线，分离指令
 # ------------------------------
 opcode = WireVector(4, 'opcode')
 ra_field = WireVector(4, 'ra')
+#TODO:check here
 rb_imm_field = WireVector(8, 'rb_imm')
 rb_field = WireVector(4, 'rb')
 rb_field <<= rb_imm_field[4:8]  # 高4位
+# TODO: check here
 imm8 = WireVector(8, 'imm8')
 imm8 <<= rb_imm_field
 
@@ -67,11 +69,10 @@ mem_rdata = WireVector(DATA_WIDTH, 'mem_rdata')
 instr = WireVector(INSTR_WIDTH, 'instr')
 instr <<= instr_mem[PC]
 
-# 修正切片（左闭右开）
 opcode <<= instr[OPCODE_LO:OPCODE_HI+1]
 ra_field <<= instr[RA_LO:RA_HI+1]
 rb_imm_field <<= instr[RB_IMM_LO:RB_IMM_HI+1]
-
+#TODO: ? maybe can get 4 bits directly
 ra_low3 = ra_field[0:3]
 rb_low3 = rb_field[0:3]
 
@@ -100,7 +101,7 @@ with pyrtl.conditional_assignment:
 with pyrtl.conditional_assignment:
     with opcode == OP_IMM:
         reg_wdata |= imm8
-    with opcode.in_([OP_ADD, OP_SUB]):
+    with (opcode == OP_ADD) | (opcode == OP_SUB):
         reg_wdata |= alu_result
     with opcode == OP_LOAD:
         reg_wdata |= mem_rdata
@@ -130,7 +131,7 @@ mem_wen <<= (opcode == OP_STORE)
 # ------------------------------
 # 控制信号生成
 # ------------------------------
-is_writeback_op = opcode.in_([OP_IMM, OP_ADD, OP_SUB, OP_LOAD, OP_MOV])
+is_writeback_op = (opcode == OP_IMM) | (opcode == OP_ADD) | (opcode == OP_SUB) | (opcode == OP_LOAD) | (opcode == OP_MOV)
 reg_wen <<= is_writeback_op & (ra_low3 != Const(7, 3))
 w_addr <<= ra_low3
 z_wen <<= is_writeback_op
@@ -170,36 +171,36 @@ with pyrtl.conditional_assignment:
 for i in range(6):
     with pyrtl.conditional_assignment:
         with reset:
-            reg_file[i].next |= 0
+            reg_file[i].next = 0
         with pyrtl.otherwise:
             with (reg_wen & (w_addr == Const(i, 3))):
-                reg_file[i].next |= reg_wdata
+                reg_file[i].next = reg_wdata
             with pyrtl.otherwise:
-                reg_file[i].next |= reg_file[i]
+                reg_file[i].next = reg_file[i]
 
 with pyrtl.conditional_assignment:
     with reset:
-        SP.next |= 0
+        SP.next = 0
     with pyrtl.otherwise:
         with (reg_wen & (w_addr == Const(6, 3))):
-            SP.next |= reg_wdata
+            SP.next = reg_wdata
         with pyrtl.otherwise:
-            SP.next |= SP
+            SP.next = SP
 
 with pyrtl.conditional_assignment:
     with reset:
-        PC.next |= 0
+        PC.next = 0
     with pyrtl.otherwise:
-        PC.next |= final_pc
+        PC.next = final_pc
 
 with pyrtl.conditional_assignment:
     with reset:
-        Z.next |= 0
+        Z.next = 0
     with pyrtl.otherwise:
         with z_wen:
-            Z.next |= (reg_wdata == Const(0, DATA_WIDTH))
+            Z.next = (reg_wdata == Const(0, DATA_WIDTH))
         with pyrtl.otherwise:
-            Z.next |= Z
+            Z.next = Z
 
 mem_write_enabled = WireVector(1, 'mem_write_enabled')
 mem_write_enabled <<= mem_wen & ~reset
@@ -261,13 +262,14 @@ if __name__ == '__main__':
     for cycle in range(max_cycles):
         sim.step({'reset': 0})
         print_cpu_state(sim, cycle)
-        if sim.inspect(halt):
+        if sim.inspect(halt.name):
             print("\n*** CPU HALTED ***")
             break
     
     print("\nFinal Registers:")
     for i in range(6):
-        print(f"  R{i:3} = {sim.inspect(reg_file[i])}")
-    print(f"  SP  = {sim.inspect(SP)}")
-    print(f"  PC  = {sim.inspect(PC)}")
-    print("Memory[100] =", sim.inspect(memory[100]))
+        reg = reg_file[i]
+        print(f"  {reg.name:3} = {sim.inspect(reg.name)}")
+    print(f"  SP  = {sim.inspect(SP.name)}")
+    print(f"  PC  = {sim.inspect(PC.name)}")
+    print("Memory[100] =", sim.inspect("memory[100]"))
