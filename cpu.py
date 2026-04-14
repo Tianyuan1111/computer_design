@@ -31,6 +31,7 @@ OP_HALT  = 0b0111
 # 定义存储器与初始化
 # ------------------------------
 reg_file = [Register(DATA_WIDTH, f'r{i}') for i in range(6)]
+#TODO:fix here
 SP = Register(DATA_WIDTH, 'SP')
 PC = Register(ADDR_WIDTH, 'PC')
 Z = Register(1, 'Z')
@@ -46,7 +47,7 @@ reset = Input(1, 'reset')
 # ------------------------------
 opcode = WireVector(4, 'opcode')
 ra_field = WireVector(4, 'ra')
-#TODO:check here
+# TODO:check here
 rb_imm_field = WireVector(8, 'rb_imm')
 rb_field = WireVector(4, 'rb')
 rb_field <<= rb_imm_field[4:8]  # 高4位
@@ -129,7 +130,7 @@ mem_rdata <<= memory[mem_addr]
 mem_wen <<= (opcode == OP_STORE)
 
 # ------------------------------
-# 控制信号生成
+# 寄存器控制信号生成
 # ------------------------------
 is_writeback_op = (opcode == OP_IMM) | (opcode == OP_ADD) | (opcode == OP_SUB) | (opcode == OP_LOAD) | (opcode == OP_MOV)
 reg_wen <<= is_writeback_op & (ra_low3 != Const(7, 3))
@@ -137,10 +138,10 @@ w_addr <<= ra_low3
 z_wen <<= is_writeback_op
 
 # ------------------------------
-# 分支处理
+# 分支控制
 # ------------------------------
 branch_taken = WireVector(1, 'branch_taken')
-branch_taken <<= (opcode == OP_BEQ) & (rdata1 == rdata2)
+branch_taken <<= (opcode == OP_BEQ) & Z
 
 next_pc = WireVector(ADDR_WIDTH, 'next_pc')
 pc_plus_one = PC + Const(1, ADDR_WIDTH)
@@ -166,7 +167,7 @@ with pyrtl.conditional_assignment:
         final_pc |= next_pc
 
 # ------------------------------
-# 寄存器更新
+# 寄存器和内存更新
 # ------------------------------
 for i in range(6):
     with pyrtl.conditional_assignment:
