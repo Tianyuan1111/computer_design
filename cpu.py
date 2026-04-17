@@ -39,9 +39,9 @@ PC = Register(ADDR_WIDTH, 'PC')
 Z = Register(1, 'Z')
 
 # 数据存储器（256字节）
-memory = pyrtl.MemBlock(DATA_WIDTH, 1 << ADDR_WIDTH, name='mem')
+memory = pyrtl.MemBlock(DATA_WIDTH, 1 << ADDR_WIDTH, name='mem', asynchronous=True)
 # 指令存储器（256条指令）
-instr_mem = pyrtl.MemBlock(INSTR_WIDTH, 1 << ADDR_WIDTH, name='instr_mem')
+instr_mem = pyrtl.MemBlock(INSTR_WIDTH, 1 << ADDR_WIDTH, name='instr_mem', asynchronous=True)
 
 # 复位输入信号
 reset = Input(1, 'reset')
@@ -224,24 +224,6 @@ with pyrtl.conditional_assignment:
 # ------------------------------
 # 辅助函数
 # ------------------------------
-def load_program(program):
-    """将程序加载到指令存储器
-    
-    Args:
-        program: 指令列表，每个元素为16位指令值
-    """
-    for addr, instr_val in enumerate(program):
-        instr_mem[addr] <<= instr_val
-
-def init_data_memory(data_dict):
-    """初始化数据存储器
-    
-    Args:
-        data_dict: 地址到数据的映射字典
-    """
-    for addr, val in data_dict.items():
-        memory[addr] <<= val
-
 def print_cpu_state(sim, cycle):
     """打印CPU当前状态（用于调试）
     
@@ -273,17 +255,20 @@ if __name__ == '__main__':
         0b0000 << 12 | 0b0100 << 8 | 0b01100100,   # IMM R4,100    ; R4 = 100（地址）
         0b0100 << 12 | 0b0100 << 8 | 0b00110000,   # STORE R4,R3   ; mem[100] = R3 = -8
         0b0011 << 12 | 0b0101 << 8 | 0b01000000,   # LOAD R5,R4    ; R5 = mem[100] = -8
-        0b0101 << 12 | 0b0101 << 8 | 0b01010010,   # BEQ R5,R3,2   ; if Z then PC+=2（相等时跳转）
-        0b0111 << 12 | 0b0000 << 8 | 0b00000000,   # HALT           ; 停机
+        0b0101 << 12 | 0b0101 << 8 | 0b01010010,   # BEQ 2         ; if Z then PC+=2（相等时跳转）
+        0b0111 << 12 | 0b0000 << 8 | 0b00000000,   # HALT          ; 停机
     ]
     
-    # 初始化数据存储器（地址100初始值为0）
-    init_data_memory({100: 0})
-    load_program(program)
     
     # 创建仿真器
     sim_trace = pyrtl.SimulationTrace()
-    sim = pyrtl.Simulation(tracer=sim_trace)
+    sim = pyrtl.Simulation(
+    tracer=sim_trace,
+    memory_value_map={
+        memory: {100: 0},   # 数据内存初始化
+        instr_mem: {i: instr for i, instr in enumerate(program)}  # 指令加载
+    }
+)
     
     # 复位CPU
     sim.step({'reset': 1})
@@ -304,4 +289,6 @@ if __name__ == '__main__':
         reg = reg_file[i]
         print(f"  {reg.name:3} = {sim.inspect(reg.name)}")
     print(f"  PC  = {sim.inspect(PC.name)}")
-    print("Memory[100] =", sim.inspect("memory[100]"))
+
+    mem_state = sim.inspect_mem(memory)
+    print("Memory[100] =", mem_state.get(100, 0))
