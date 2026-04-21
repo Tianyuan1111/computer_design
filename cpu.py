@@ -39,12 +39,33 @@ PC = Register(ADDR_WIDTH, 'PC')
 Z = Register(1, 'Z')
 
 # 数据存储器（256字节）
-memory = pyrtl.MemBlock(DATA_WIDTH, 1 << ADDR_WIDTH, name='mem', asynchronous=True)
+memory = pyrtl.MemBlock(
+    bitwidth=DATA_WIDTH,
+    addrwidth=ADDR_WIDTH,
+    name='mem',
+    asynchronous=True
+)
 # 指令存储器（256条指令）
-instr_mem = pyrtl.MemBlock(INSTR_WIDTH, 1 << ADDR_WIDTH, name='instr_mem', asynchronous=True)
+instr_mem = pyrtl.MemBlock(
+    bitwidth=INSTR_WIDTH,
+    addrwidth=ADDR_WIDTH,
+    name='instr_mem',
+    asynchronous=True
+)
 
 # 复位输入信号
 reset = Input(1, 'reset')
+
+# ------------------------------
+# 顶层输出信号（用于综合）
+# ------------------------------
+out_PC   = pyrtl.Output(ADDR_WIDTH, 'out_PC')
+out_halt = pyrtl.Output(1, 'out_halt')
+out_Z    = pyrtl.Output(1, 'out_Z')
+out_R0   = pyrtl.Output(DATA_WIDTH, 'out_R0')
+out_R1   = pyrtl.Output(DATA_WIDTH, 'out_R1')
+out_R2   = pyrtl.Output(DATA_WIDTH, 'out_R2')
+out_R3   = pyrtl.Output(DATA_WIDTH, 'out_R3')
 
 # ------------------------------
 # 定义导线，分离指令
@@ -144,10 +165,10 @@ mem_wen <<= (opcode == OP_STORE)                 # 只有STORE指令才写内存
 # ------------------------------
 # 需要写回寄存器的操作类型
 is_writeback_op = (opcode == OP_IMM) | (opcode == OP_ADD) | (opcode == OP_SUB) | (opcode == OP_LOAD) | (opcode == OP_MOV)
-# 寄存器写使能：需要写回且目标不是R7（R7为保留寄存器）
+# 寄存器写使能
 reg_wen <<= is_writeback_op
 w_addr <<= ra_low3                                # 写回地址来自ra_low3
-z_wen <<= is_writeback_op                         # 零标志更新使能
+z_wen <<= (opcode == OP_ADD) | (opcode == OP_SUB)                         # 零标志更新使能
 
 # ------------------------------
 # 分支控制
@@ -222,6 +243,17 @@ with pyrtl.conditional_assignment:
         memory[mem_addr] |= mem_wdata
 
 # ------------------------------
+# 顶层输出连接
+# ------------------------------
+out_PC <<= PC
+out_halt <<= halt
+out_Z <<= Z
+out_R0 <<= reg_file[0]
+out_R1 <<= reg_file[1]
+out_R2 <<= reg_file[2]
+out_R3 <<= reg_file[3]
+
+# ------------------------------
 # 辅助函数
 # ------------------------------
 def print_cpu_state(sim, cycle):
@@ -292,3 +324,11 @@ if __name__ == '__main__':
 
     mem_state = sim.inspect_mem(memory)
     print("Memory[100] =", mem_state.get(100, 0))
+
+    # 路图打印
+    #with open("cpu.dot", "w") as f:
+        #pyrtl.output_to_graphviz(f)
+
+    # 导出Verilog代码
+    with open("cpu.v", "w") as f:
+        pyrtl.output_to_verilog(f, add_reset=False)
