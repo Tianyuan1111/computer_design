@@ -146,4 +146,18 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
 
     // MemBlock instr_mem logic
     assign tmp1 = instr_mem[PC];
+
+    // Instruction memory initialization
+    initial begin
+        instr_mem[0] = 16'h0805;
+        instr_mem[1] = 16'h0903;
+        instr_mem[2] = 16'h1810;
+        instr_mem[3] = 16'h2200;
+        instr_mem[4] = 16'h3320;
+        instr_mem[5] = 16'h0864;
+        instr_mem[6] = 16'h4430;
+        instr_mem[7] = 16'h3540;
+        instr_mem[8] = 16'h5552;
+        instr_mem[9] = 16'h7000;
+    end
 endmodule
