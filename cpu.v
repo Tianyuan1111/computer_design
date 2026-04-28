@@ -2,7 +2,7 @@
 // As one initial test of synthesis, map to FPGA with:
 //   yosys -p "synth_xilinx -top toplevel" thisfile.v
 
-module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_halt);
+module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_R4, out_R5, out_R6, out_R7, out_Z, out_halt);
     input clk;
     input reset;
     output[7:0] out_PC;
@@ -10,6 +10,10 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
     output[7:0] out_R1;
     output[7:0] out_R2;
     output[7:0] out_R3;
+    output[7:0] out_R4;
+    output[7:0] out_R5;
+    output[7:0] out_R6;
+    output[7:0] out_R7;
     output out_Z;
     output out_halt;
 
@@ -92,6 +96,10 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
     assign out_R1 = r1;
     assign out_R2 = r2;
     assign out_R3 = r3;
+    assign out_R4 = r4;
+    assign out_R5 = r5;
+    assign out_R6 = r6;
+    assign out_R7 = r7;
     assign out_Z = Z;
     assign out_halt = halt;
     assign ra = (instr[11:8]);

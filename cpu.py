@@ -66,6 +66,10 @@ out_R0   = pyrtl.Output(DATA_WIDTH, 'out_R0')
 out_R1   = pyrtl.Output(DATA_WIDTH, 'out_R1')
 out_R2   = pyrtl.Output(DATA_WIDTH, 'out_R2')
 out_R3   = pyrtl.Output(DATA_WIDTH, 'out_R3')
+out_R4   = pyrtl.Output(DATA_WIDTH, 'out_R4')
+out_R5   = pyrtl.Output(DATA_WIDTH, 'out_R5')
+out_R6   = pyrtl.Output(DATA_WIDTH, 'out_R6')
+out_R7   = pyrtl.Output(DATA_WIDTH, 'out_R7')
 
 # ------------------------------
 # 定义导线，分离指令
@@ -247,6 +251,10 @@ out_R0 <<= reg_file[0]
 out_R1 <<= reg_file[1]
 out_R2 <<= reg_file[2]
 out_R3 <<= reg_file[3]
+out_R4 <<= reg_file[4]
+out_R5 <<= reg_file[5]
+out_R6 <<= reg_file[6]
+out_R7 <<= reg_file[7]
 
 # ------------------------------
 # 辅助函数
