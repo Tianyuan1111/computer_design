@@ -72,13 +72,9 @@ out_R3   = pyrtl.Output(DATA_WIDTH, 'out_R3')
 # ------------------------------
 opcode = WireVector(4, 'opcode')        # 操作码
 ra_field = WireVector(4, 'ra')          # 寄存器A字段（4位）
-
 rb_imm_field = WireVector(8, 'rb_imm')  # 寄存器B/立即数字段（8位）
 rb_field = WireVector(4, 'rb')          # 寄存器B字段（高4位）
-rb_field <<= rb_imm_field[4:8]          # 从rb_imm_field提取高4位
-
 imm8 = WireVector(8, 'imm8')            # 8位立即数
-imm8 <<= rb_imm_field                   # 直接使用整个rb_imm_field
 
 # 控制信号
 reg_wen = WireVector(1, 'reg_wen')      # 寄存器写使能
@@ -101,9 +97,12 @@ instr <<= instr_mem[PC]                           # 从指令存储器读取指�
 opcode <<= instr[OPCODE_LO:OPCODE_HI+1]          # 提取操作码
 ra_field <<= instr[RA_LO:RA_HI+1]                # 提取寄存器A字段
 rb_imm_field <<= instr[RB_IMM_LO:RB_IMM_HI+1]    # 提取RB/立即数字段
+rb_field <<= rb_imm_field[4:8]                   # 从rb_imm_field提取高4位
 
 ra_low3 = ra_field[0:3]                          # 取寄存器地址的低3位（0-7）
 rb_low3 = rb_field[0:3]                          # 取寄存器地址的低3位
+
+imm8 <<= rb_imm_field                            # 直接使用整个rb_imm_field
 
 # 读取寄存器值
 rdata1 = WireVector(DATA_WIDTH, 'rdata1')        # 源操作数1
@@ -114,18 +113,14 @@ rdata2 <<= pyrtl.mux(rb_low3, *reg_file)         # 根据rb_low3选择寄存器
 # ------------------------------
 # ALU（算术逻辑单元）
 # ------------------------------
-add_res = rdata1 + rdata2    # 加法结果
-sub_res = rdata1 - rdata2    # 减法结果
 
-# 根据操作码选择ALU输出
 with pyrtl.conditional_assignment:
     with opcode == OP_ADD:
-        alu_result |= add_res
+        alu_result |= rdata1 + rdata2
     with opcode == OP_SUB:
-        alu_result |= sub_res
+        alu_result |= rdata1 - rdata2
     with pyrtl.otherwise:
         alu_result |= 0
-
 # ------------------------------
 # 写回数据选择（决定写回寄存器的值）
 # ------------------------------

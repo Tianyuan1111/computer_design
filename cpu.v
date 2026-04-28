@@ -50,17 +50,17 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
     wire[7:0] rdata2;
     wire[7:0] reg_wdata;
     wire reg_wen;
-    wire[15:0] tmp1;
+    wire[15:0] tmp0;
     wire[2:0] tmp5;
     wire[2:0] tmp6;
     wire[1:0] tmp8;
     wire[1:0] tmp15;
     wire[1:0] tmp24;
     wire[1:0] tmp31;
-    wire[8:0] tmp39;
-    wire[8:0] tmp40;
-    wire tmp43;
-    wire tmp47;
+    wire tmp41;
+    wire[8:0] tmp42;
+    wire tmp46;
+    wire[8:0] tmp47;
     wire tmp61;
     wire tmp68;
     wire tmp73;
@@ -74,12 +74,12 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
     wire z_wen;
 
     // Combinational logic
-    assign alu_result = ((~(tmp43) & ~(tmp47)) ? 8'd0 : ((~(tmp43) & tmp47) ? (tmp40[7:0]) : (tmp43 ? (tmp39[7:0]) : {{7 {1'd0}}, 1'd0})));
+    assign alu_result = ((~(tmp41) & ~(tmp46)) ? 8'd0 : ((~(tmp41) & tmp46) ? (tmp47[7:0]) : (tmp41 ? (tmp42[7:0]) : {{7 {1'd0}}, 1'd0})));
     assign branch_taken = ((opcode == {(1'd0), 3'd5}) & Z);
     assign final_pc = (~(halt) ? next_pc : (halt ? PC : {{7 {1'd0}}, 1'd0}));
     assign halt = (opcode == {(1'd0), 3'd7});
     assign imm8 = rb_imm;
-    assign instr = tmp1;
+    assign instr = tmp0;
     assign mem_addr = ((~(tmp103) & ~(tmp107)) ? 8'd0 : ((~(tmp103) & tmp107) ? (rdata1[7:0]) : (tmp103 ? (rdata2[7:0]) : {{7 {1'd0}}, 1'd0})));
     assign mem_rdata = tmp119;
     assign mem_wdata = rdata2;
@@ -107,10 +107,10 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
     assign tmp15 = (tmp5[1:0]);
     assign tmp24 = (tmp6[1:0]);
     assign tmp31 = (tmp6[1:0]);
-    assign tmp39 = (rdata1 + rdata2);
-    assign tmp40 = (rdata1 - rdata2);
-    assign tmp43 = (opcode == {{3 {1'd0}}, 1'd1});
-    assign tmp47 = (opcode == {{2 {1'd0}}, 2'd2});
+    assign tmp41 = (opcode == {{3 {1'd0}}, 1'd1});
+    assign tmp42 = (rdata1 + rdata2);
+    assign tmp46 = (opcode == {{2 {1'd0}}, 2'd2});
+    assign tmp47 = (rdata1 - rdata2);
     assign tmp61 = (opcode == {{3 {1'd0}}, 1'd0});
     assign tmp68 = ((opcode == {{3 {1'd0}}, 1'd1}) | (opcode == {{2 {1'd0}}, 2'd2}));
     assign tmp73 = (opcode == {{2 {1'd0}}, 2'd3});
@@ -145,19 +145,5 @@ module toplevel(clk, reset, out_PC, out_R0, out_R1, out_R2, out_R3, out_Z, out_h
     assign tmp119 = mem[mem_addr];
 
     // MemBlock instr_mem logic
-    assign tmp1 = instr_mem[PC];
-
-    // Instruction memory initialization
-    initial begin
-        instr_mem[0] = 16'h0805;
-        instr_mem[1] = 16'h0903;
-        instr_mem[2] = 16'h1810;
-        instr_mem[3] = 16'h2200;
-        instr_mem[4] = 16'h3320;
-        instr_mem[5] = 16'h0864;
-        instr_mem[6] = 16'h4430;
-        instr_mem[7] = 16'h3540;
-        instr_mem[8] = 16'h5552;
-        instr_mem[9] = 16'h7000;
-    end
+    assign tmp0 = instr_mem[PC];
 endmodule
