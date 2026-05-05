@@ -32,7 +32,7 @@ OP_HALT  = 0b0111       # 停机指令
 # ------------------------------
 # 通用寄存器文件（R0-R7）
 # reg_file = [Register(DATA_WIDTH, f'r{i}') for i in range(8)] 
-regs = pyrtl.MemBlock(bitwidth=DATA_WIDTH, addrwidth=3, name='regs', asynchronous=True, max_read_ports=4)
+regs = pyrtl.MemBlock(bitwidth=DATA_WIDTH, addrwidth=3, name='regs', asynchronous=True, max_read_ports=3)
 
 # 程序计数器
 PC = Register(ADDR_WIDTH, 'PC')
