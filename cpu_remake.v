@@ -246,9 +246,7 @@ module toplevel(
         .addr(PC),
         .instr(instr)
     );
-
-    wire [7:0] wdata;
-    assign wdata = (opcode == 4'h3) ? mem_rdata : alu_result;  
+  
 
     // 寄存器堆
     reg_file rf(
@@ -272,6 +270,10 @@ module toplevel(
     );
 
     // 数据存储器
+    //0100	STORE Rd, Rs,4'h0	Mem[Rs] ← Rd
+    
+    wire [7:0] wdata;
+    assign wdata = (opcode == 4'h3) ? mem_rdata : alu_result;
     data_mem dmem(
         .clk(clk),
         .wen(mem_wen),
