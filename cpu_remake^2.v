@@ -50,31 +50,31 @@ endmodule
 // ========== 指令存储器 ==========
 module instr_mem(
     input [7:0] addr,
+    input clk,
+    input we,
+    input [15:0] din,
     output reg [15:0] instr
 );
-    reg [15:0] mem [255:0];
-    
-    always @(*) begin
-        instr = mem[addr];
+    (* ram_style = "block" *) reg [15:0] mem [255:0] = '{
+        0: 16'h0105,
+        1: 16'h0205,
+        2: 16'h6310,
+        3: 16'h2320,
+        4: 16'h5001,
+        5: 16'h0463,
+        6: 16'h052A,
+        7: 16'h7000,
+        default: 16'h0000
+    };
+
+    // 写端口：独立的 always
+    always @(posedge clk) begin
+        if (we) mem[addr] <= din;
     end
 
-    initial begin
-        // R1 = 5
-        mem[0] = 16'h0105; // IMM R1,5
-        // R2 = 5
-        mem[1] = 16'h0205; // IMM R2,5
-        // R3 = R1
-        mem[2] = 16'h6310; // MOV R3,R1
-        // R3 = R3 - R2 → Z=1
-        mem[3] = 16'h2320; // SUB R3,R2
-        // if Z jump
-        mem[4] = 16'h5001; // BZ +1
-        // (should skip)
-        mem[5] = 16'h0463; // IMM R4,99
-        // label
-        mem[6] = 16'h052A; // IMM R5,42
-        // stop
-        mem[7] = 16'h7000; // HALT
+    // 读端口：另一个独立的 always（或直接用 assign）
+    always @(posedge clk) begin
+        instr <= mem[addr];
     end
 endmodule
 
@@ -91,18 +91,17 @@ module reg_file(
     output [7:0] rdata2
 );
     reg [7:0] regs[15:0];
-    integer i;
-
-    assign rdata1 = regs[raddr1];
-    assign rdata2 = regs[raddr2];
-
+    
+    // 如果RISC-V x0寄存器需要恒为0，可以单独处理
+    wire [7:0] rdata1_raw = regs[raddr1];
+    wire [7:0] rdata2_raw = regs[raddr2];
+    
+    assign rdata1 = (raddr1 == 4'd0) ? 8'd0 : rdata1_raw;
+    assign rdata2 = (raddr2 == 4'd0) ? 8'd0 : rdata2_raw;
+    
     always @(posedge clk) begin
-        if (reset) begin
-            for (i = 0; i < 16; i = i + 1)
-                regs[i] <= 8'd0;
-        end else if (wen) begin
+        if (wen && (waddr != 4'd0))  // 禁止写入x0
             regs[waddr] <= wdata;
-        end
     end
 endmodule
 
@@ -115,7 +114,6 @@ module data_mem(
     output reg [7:0] rdata
 );
     reg [7:0] mem[255:0];
-    integer i;
 
     always @(*) begin
         rdata = mem[addr];
@@ -124,11 +122,6 @@ module data_mem(
     always @(posedge clk) begin
         if (wen)
             mem[addr] <= wdata;
-    end
-
-    initial begin
-        for(i = 0; i < 256; i = i + 1)
-            mem[i] = 8'd0;
     end
 endmodule
 
