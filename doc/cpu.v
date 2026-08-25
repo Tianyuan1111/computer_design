@@ -55,25 +55,31 @@ module instr_mem(
     input [15:0] din,
     output reg [15:0] instr
 );
-    (* ram_style = "block" *) reg [15:0] mem [255:0] = '{
-        0: 16'h0105,
-        1: 16'h0205,
-        2: 16'h6310,
-        3: 16'h2320,
-        4: 16'h5001,
-        5: 16'h0463,
-        6: 16'h052A,
-        7: 16'h7000,
-        default: 16'h0000
-    };
+    // 直接在声明时初始化内容（FPGA综合支持）
+    (* ram_style = "block" *) reg [15:0] mem [255:0];
+    
+    integer i;
+    
+    // 将初始化改为 initial 块以符合 Verilog 标准
+    initial begin
+        // 首先将所有内存初始化为 0 (对应原 default: 16'h0000)
+        for (i = 0; i < 256; i = i + 1) begin
+            mem[i] = 16'h0000;
+        end
 
-    // 写端口：独立的 always
+        // 填入你的原始指令逻辑 [cite: 46, 47]
+        mem[0] = 16'h0105;  // IMM R1,5
+        mem[1] = 16'h0205;  // IMM R2,5
+        mem[2] = 16'h6310;  // MOV R3,R1
+        mem[3] = 16'h2320;  // SUB R3,R2
+        mem[4] = 16'h5001;  // BZ +1
+        mem[5] = 16'h0463;  // IMM R4,99
+        mem[6] = 16'h052A;  // IMM R5,42
+        mem[7] = 16'h7000;  // HALT
+    end
+    
     always @(posedge clk) begin
         if (we) mem[addr] <= din;
-    end
-
-    // 读端口：另一个独立的 always（或直接用 assign）
-    always @(posedge clk) begin
         instr <= mem[addr];
     end
 endmodule
@@ -225,7 +231,10 @@ module toplevel(
     // 实例化：指令存储器
     instr_mem imem(
         .addr(PC),
-        .instr(instr)
+        .instr(instr),  
+        .clk(clk),
+        .we(1'b0),      
+        .din(16'h0)
     );
 
     // 实例化：寄存器堆
